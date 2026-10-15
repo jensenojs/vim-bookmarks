@@ -201,6 +201,19 @@ the current working directory whenever you create bookmarks. You should add this
 file to your (global) `.gitignore` file so it doesn't get checked into version
 control.
 
+Save bookmarks with portable tilde paths (default ''):
+
+>
+  let g:bookmark_relative_root = '~/Projects'
+<
+
+When set, paths under this (tilde-expanded) root are stored in the bookmarks
+file starting with the root itself (e.g. '~/Projects/foo/bar.vim') instead of
+absolute paths, so one bookmarks file can be shared across machines where the
+repositories live at different absolute locations. Each machine expands the
+tilde against its own $HOME at load time. Paths outside the root are stored
+absolutely. Requires re-saving existing bookmarks once to convert old entries.
+
 Enable bookmark management on a per buffer basis:
 
 >

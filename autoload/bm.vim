@@ -164,7 +164,7 @@ function! bm#serialize()
   let file_version = "let l:bm_file_version = 1"
   let sessions  = "let l:bm_sessions = {'default': {"
   for file in bm#all_files()
-    let sessions .= "'". file ."': ["
+    let sessions .= "'". s:compress_path(file) ."': ["
     for bm in values(bm#all_bookmarks_by_line(file))
       let escaped_content = substitute(bm['content'], "'", "''", "g")
       let escaped_annotation = substitute(bm['annotation'], "'", "''", "g")
@@ -182,8 +182,9 @@ function! bm#deserialize(data)
     exec join(a:data, " | ")
     let ses = l:bm_sessions["default"]
     let result = []
-    for file in keys(ses)
-      for bm in ses[file]
+    for l:key in keys(ses)
+      let l:file = s:expand_path(l:key)
+      for bm in ses[l:key]
         let annotation = has_key(bm, 'annotation') ? bm['annotation'] : ''
          call add(result, 
             \ extend(
@@ -201,6 +202,29 @@ endfunction
 
 
 " Private {{{
+
+" 存取边界的路径压缩: 内存键始终是绝对路径, 只有写入书签文件的字符串被折算成
+" 以 g:bookmark_relative_root (形如 '~/Projects') 起始的波浪线路径; 加载时按
+" 本机 $HOME 展开. 用于三机共用一份书签文件, 各自展开到自己的仓库位置.
+" 在根之外的路径保持绝对, 原样存取.
+function! s:compress_path(file)
+  if g:bookmark_relative_root ==# ''
+    return a:file
+  endif
+  let root = expand(g:bookmark_relative_root)
+  if root !=# '' && stridx(a:file, root . '/') ==# 0
+    return g:bookmark_relative_root . strpart(a:file, strlen(root))
+  endif
+  return a:file
+endfunction
+
+function! s:expand_path(file)
+  " 不能写 '^~': magic 正则里 ~ 是上次替换串, 匹配不到字面波浪号
+  if stridx(a:file, '~') ==# 0
+    return expand(a:file)
+  endif
+  return a:file
+endfunction
 
 function! bm#compare_lines(line_str1, line_str2)
   let line1 = str2nr(a:line_str1)
